@@ -1,0 +1,39 @@
+services:
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@carbooking.dev
+      PGADMIN_DEFAULT_PASSWORD_FILE: /var/lib/pgadmin/.pgadmin-password
+      PGADMIN_DISABLE_POSTFIX: "1"
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
+      PGPASS_FILE: /var/lib/pgadmin/.pgpass
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:?DB_NAME is required}
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        umask 077
+        printf '%s' "$$DB_PASSWORD" > "$$PGADMIN_DEFAULT_PASSWORD_FILE"
+        printf '%s:%s:%s:%s:%s\n' "$$DB_HOST" "$$DB_PORT" "$$DB_NAME" "$$DB_USER" "$$DB_PASSWORD" > "$$PGPASS_FILE"
+        exec /entrypoint.sh
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - carbooking-dev
+
+volumes:
+  pgadmin-data:
+
+networks:
+  carbooking-dev:
+    external: true

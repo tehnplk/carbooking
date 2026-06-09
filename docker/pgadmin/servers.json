@@ -1,0 +1,17 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "carbooking-dev",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "carbooking",
+      "Username": "admin",
+      "SSLMode": "prefer",
+      "ConnectionParameters": {
+        "sslmode": "prefer",
+        "passfile": "/var/lib/pgadmin/.pgpass"
+      }
+    }
+  }
+}
