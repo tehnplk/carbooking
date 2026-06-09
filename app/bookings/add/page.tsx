@@ -306,7 +306,7 @@ export default function AddBookingPage() {
         </span>
       </div>
 
-      {outsideHours ? (
+      {outsideHours && false ? (
         <div className="space-y-3 pb-6">
           <div className="rounded-md bg-amber-50 px-4 py-3">
             <div className="flex min-w-0 items-start gap-3">
