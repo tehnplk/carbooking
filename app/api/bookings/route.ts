@@ -6,10 +6,9 @@ import { publishBookingRealtime } from '@/lib/booking-realtime';
 import { ensureTripsSchema } from '@/lib/booking-trip';
 import { ensureCarTypeSchema } from '@/lib/car-type';
 import {
-  pushBookingCreatedLineMessage as pushBookingCreatedLineMessageLine1,
+  pushBookingCreatedMophNotifyMessage,
   type BookingDetailMessage,
-} from '@/lib/line-notify-1';
-import { pushBookingCreatedLineMessage as pushBookingCreatedLineMessageLine2 } from '@/lib/line-notify-2';
+} from '@/lib/moph-notify';
 import {
   ensureMasterDataSchema,
   getBookingStatusIds,
@@ -21,22 +20,13 @@ import {
   syncTravelledBookingStatus,
 } from '@/lib/master-data';
 
-async function pushBookingCreatedLineMessageWithFallback(booking: BookingDetailMessage) {
-  try {
-    const line1Result = await pushBookingCreatedLineMessageLine1(booking);
-    if (line1Result.broadcasted) return line1Result;
-
-    console.warn('LINE 1 push skipped after booking creation:', line1Result.reason);
-  } catch (line1Error) {
-    console.error('LINE 1 push failed after booking creation:', line1Error);
+async function pushBookingCreatedNotifyMessage(booking: BookingDetailMessage) {
+  const result = await pushBookingCreatedMophNotifyMessage(booking);
+  if (!result.ok) {
+    console.warn('MOPH Notify push failed after booking creation:', result.reason ?? result.status, result.data ?? result.text);
   }
 
-  const line2Result = await pushBookingCreatedLineMessageLine2(booking);
-  if (!line2Result.broadcasted) {
-    console.warn('LINE 2 push skipped after booking creation:', line2Result.reason);
-  }
-
-  return line2Result;
+  return result;
 }
 
 export async function GET() {
@@ -246,9 +236,9 @@ export async function POST(request: Request) {
 
     if (bookingDetails[0]) {
       try {
-        await pushBookingCreatedLineMessageWithFallback(bookingDetails[0]);
-      } catch (lineError) {
-        console.error('LINE push failed after booking creation:', lineError);
+        await pushBookingCreatedNotifyMessage(bookingDetails[0]);
+      } catch (notifyError) {
+        console.error('MOPH Notify push failed after booking creation:', notifyError);
       }
     }
 
