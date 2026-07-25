@@ -538,10 +538,12 @@ export default function BookingListClient({ initialBookings, departments, sort, 
   const bulkAssignButtonMobile = shouldShowBulkAction ? (
     <button
       onClick={handleBulkAssign}
-      className="inline-flex items-center rounded-md bg-emerald-500 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
+      aria-label={`จัดรถ ${selectedIds.length} รายการ`}
+      title={`จัดรถ (${selectedIds.length})`}
+      className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
     >
-      <Car className="mr-1.5 h-4 w-4" />
-      จัดรถ ({selectedIds.length})
+      <Car className="h-4 w-4" />
+      <span className="tabular-nums">{selectedIds.length}</span>
     </button>
   ) : null;
 
