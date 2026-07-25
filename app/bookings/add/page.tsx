@@ -50,12 +50,12 @@ interface MasterOption {
 
 const REQUESTER_STORAGE_KEY = 'booking.add.requesterInfo';
 
-const sectionClass = 'relative border-t border-dashed border-slate-500/80 py-5 first:border-t-0 first:pt-1 md:py-6 md:first:pt-2';
+const sectionClass = 'relative border-t border-dashed border-emerald-200 py-5 first:border-t-0 first:pt-1 md:py-6 md:first:pt-2';
 const sectionHeaderClass = 'mb-4 flex items-center gap-3 pb-2';
-const sectionIconClass = 'flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-slate-600';
+const sectionIconClass = 'flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700';
 const labelClass = 'ml-0.5 flex items-center text-[11px] font-semibold uppercase text-slate-500';
-const fieldClass = 'h-10 w-full rounded-md border-0 bg-white/70 px-3 text-sm font-semibold !text-blue-700 outline-none transition-all placeholder:text-slate-300 focus:bg-white focus:shadow-[0_8px_18px_rgba(18,130,69,0.08)]';
-const textareaClass = 'min-h-24 w-full resize-none rounded-md border-0 bg-white/70 px-3 py-2 text-sm font-semibold leading-7 !text-blue-700 outline-none transition-all placeholder:text-slate-300 focus:bg-white focus:shadow-[0_8px_18px_rgba(18,130,69,0.08)]';
+const fieldClass = 'h-10 w-full rounded-md border border-emerald-100 bg-emerald-50/40 px-3 text-sm font-semibold !text-blue-700 outline-none transition-all placeholder:text-slate-400 hover:border-emerald-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100';
+const textareaClass = 'min-h-24 w-full resize-none rounded-md border border-emerald-100 bg-emerald-50/40 px-3 py-2 text-sm font-semibold leading-7 !text-blue-700 outline-none transition-all placeholder:text-slate-400 hover:border-emerald-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100';
 
 function toLocalDateTimeValue(date: Date) {
   const year = date.getFullYear();
@@ -300,7 +300,7 @@ export default function AddBookingPage() {
   return (
     <div className="mx-auto w-full max-w-5xl animate-in slide-in-from-bottom-2 pb-12 duration-300">
       <div className="flex justify-end px-1 pb-3 md:px-0">
-        <span className="inline-flex items-center gap-1.5 rounded-sm bg-[#fffaf0] px-2.5 py-1 text-[11px] font-medium tabular-nums text-slate-500 shadow-sm">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-100/80 bg-white px-2.5 py-1 text-[11px] font-medium tabular-nums text-emerald-800 shadow-sm">
           <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
           {clockDisplay}
         </span>
@@ -323,7 +323,7 @@ export default function AddBookingPage() {
       ) : (
       <form
         onSubmit={handleSubmit}
-        className="relative overflow-hidden rounded-md bg-[#fffaf0] px-4 py-5 shadow-[0_18px_45px_rgba(49,82,71,0.13)] md:px-8 md:py-7"
+        className="relative overflow-hidden rounded-xl border border-emerald-100/80 bg-white px-4 py-5 shadow-[0_18px_45px_rgba(18,130,69,0.10)] md:px-8 md:py-7"
       >
         <div className="relative">
         <div className={sectionClass}>
@@ -425,10 +425,10 @@ export default function AddBookingPage() {
                     className={cn(
                       'flex h-10 items-center justify-between rounded-sm px-3 text-sm font-semibold transition-all',
                       formData.trip_type_id === String(item.id)
-                        ? 'bg-blue-50/90 text-blue-700 shadow-[0_8px_18px_rgba(37,99,235,0.10)]'
+                        ? 'border border-blue-300 bg-blue-50 text-blue-700 shadow-[0_8px_18px_rgba(37,99,235,0.12)]'
                         : tripTypeError
-                        ? 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-                        : 'bg-white/55 text-blue-700 hover:bg-white/80'
+                        ? 'border border-rose-300 bg-rose-50 text-rose-600 hover:bg-rose-100'
+                        : 'border border-emerald-100 bg-emerald-50/40 text-blue-700 hover:border-emerald-200 hover:bg-emerald-50'
                     )}
                   >
                     <span>{index + 1}. {item.name}</span>
@@ -543,11 +543,11 @@ export default function AddBookingPage() {
 
         <div
           data-action-group="booking-submit-actions"
-          className="mt-2 flex flex-col gap-2 border-t border-dashed border-slate-500/80 pt-4 sm:flex-row sm:items-center sm:justify-between"
+          className="mt-2 flex flex-col gap-2 border-t border-dashed border-emerald-200 pt-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <Link
             href="/bookings"
-            className="hidden h-10 rounded-sm bg-white/65 px-4 text-center text-sm font-semibold leading-10 text-slate-500 transition-colors hover:bg-white hover:text-slate-700 sm:block sm:w-auto"
+            className="hidden h-10 rounded-sm border border-slate-200 bg-white px-4 text-center text-sm font-semibold leading-10 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 sm:block sm:w-auto"
           >
             ยกเลิก
           </Link>

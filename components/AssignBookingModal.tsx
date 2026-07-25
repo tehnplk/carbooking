@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Loader2, Plus, X } from 'lucide-react';
+import { Check, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -278,6 +278,12 @@ export default function AssignBookingModal({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
             <div className="space-y-2">
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem] items-center gap-2 px-1">
+                <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">รถ</span>
+                <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">พนักงานขับรถ</span>
+                <span className="sr-only">จัดการแถว</span>
+              </div>
+
               {assignments.map((assignment, index) => (
                 <div key={assignment.rowId} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem] items-center gap-2">
                   <select
@@ -311,27 +317,29 @@ export default function AssignBookingModal({
                     ))}
                   </select>
 
-                  {index === assignments.length - 1 ? (
-                    <button
-                      type="button"
-                      onClick={addAssignment}
-                      className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#23b35b] text-white transition-all hover:bg-[#1ea651]"
-                      aria-label="เพิ่มรถ"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => removeAssignment(assignment.rowId)}
-                      className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                      aria-label="ลบรถ"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeAssignment(assignment.rowId)}
+                    disabled={assignments.length <= 1}
+                    title={assignments.length <= 1 ? 'ต้องมีรถอย่างน้อย 1 คัน' : `ลบรถคันที่ ${index + 1}`}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300 disabled:hover:border-slate-100 disabled:hover:bg-slate-50 disabled:hover:text-slate-300"
+                    aria-label={`ลบรถคันที่ ${index + 1}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
+
+              <button
+                type="button"
+                onClick={addAssignment}
+                className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#23b35b] bg-[#23b35b]/5 text-xs font-black text-[#1ea651] transition-all hover:bg-[#23b35b]/10"
+                aria-label="เพิ่มรถ"
+              >
+                <Plus className="h-4 w-4" />
+                เพิ่มรถ
+              </button>
+
               {fetchingOptions && <p className="text-xs text-slate-400">กำลังดึงข้อมูลรถและพขร...</p>}
             </div>
 
