@@ -235,7 +235,11 @@ export async function PATCH(
         car_id: Number(assignment?.car_id),
         driver_id: Number(assignment?.driver_id),
       }))
-      .filter((assignment) => Number.isFinite(assignment.car_id) && Number.isFinite(assignment.driver_id));
+      // Number(null) and Number('') are both 0, so a finite check alone lets empty rows through
+      .filter((assignment) =>
+        Number.isInteger(assignment.car_id) && assignment.car_id > 0 &&
+        Number.isInteger(assignment.driver_id) && assignment.driver_id > 0
+      );
 
     const uniqueAssignmentKeys = new Set<string>();
     const dedupedAssignments = normalizedAssignments.filter((assignment) => {
@@ -246,13 +250,64 @@ export async function PATCH(
     });
     const firstAssignment = dedupedAssignments[0] ?? null;
 
-    if (!firstAssignment) {
-      return NextResponse.json({ error: 'Car and driver are required before assigning a trip' }, { status: 400 });
-    }
-
     const statusIds = await getBookingStatusIds();
     const targetIds = [Number(id), ...(Array.isArray(other_ids) ? other_ids.map(Number) : [])]
       .filter((value, index, array) => Number.isFinite(value) && array.indexOf(value) === index);
+
+    // No car/driver pair left: release the trip and send every booking on it back to รอจัดรถ
+    if (!firstAssignment) {
+      const currentRows = await queryWithEncoding(
+        'SELECT trip_id FROM bookings WHERE id = $1 LIMIT 1',
+        [Number(id)]
+      ) as { trip_id: number | null }[];
+
+      if (currentRows.length === 0) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+      }
+
+      const releasedTripId = currentRows[0]?.trip_id ?? null;
+      const tripMemberRows = releasedTripId
+        ? await queryWithEncoding(
+            'SELECT id FROM bookings WHERE trip_id = $1',
+            [releasedTripId]
+          ) as { id: number }[]
+        : [];
+
+      const releasedIds = [Number(id), ...tripMemberRows.map((row) => Number(row.id))]
+        .filter((value, index, array) => Number.isFinite(value) && array.indexOf(value) === index);
+
+      await queryWithEncoding(
+        `UPDATE bookings
+         SET trip_id = NULL,
+             car_id = NULL,
+             driver_id = NULL,
+             status_id = $1
+         WHERE id = ANY($2::int[])`,
+        [statusIds.pending, releasedIds]
+      );
+
+      // Only safe once no booking references the trip anymore
+      if (releasedTripId) {
+        await queryWithEncoding('DELETE FROM trip_car_driver WHERE trip_id = $1', [releasedTripId]);
+        await queryWithEncoding('DELETE FROM trips WHERE id = $1', [releasedTripId]);
+      }
+
+      await publishBookingRealtime({
+        action: 'updated',
+        bookingId: Number(id),
+        bookingIds: releasedIds,
+        tripId: releasedTripId,
+      });
+
+      return NextResponse.json({
+        message: 'Trip released successfully',
+        trip_id: null,
+        status_id: statusIds.pending,
+        assignments: [],
+        affected_ids: releasedIds,
+        detached_ids: [],
+      });
+    }
 
     if (targetIds.length > 1) {
       const bookingRows = await queryWithEncoding(

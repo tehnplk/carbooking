@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -211,7 +211,7 @@ export default function AssignBookingModal({
   const addAssignment = () => setAssignments((current) => [...current, createAssignmentRow()]);
 
   const removeAssignment = (rowId: string) => {
-    setAssignments((current) => current.length > 1 ? current.filter((assignment) => assignment.rowId !== rowId) : current);
+    setAssignments((current) => current.filter((assignment) => assignment.rowId !== rowId));
   };
 
   const updateAssignment = (rowId: string, field: 'car_id' | 'driver_id', value: string) => {
@@ -278,11 +278,25 @@ export default function AssignBookingModal({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
             <div className="space-y-2">
-              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem] items-center gap-2 px-1">
-                <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">รถ</span>
-                <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">พนักงานขับรถ</span>
-                <span className="sr-only">จัดการแถว</span>
-              </div>
+              {assignments.length > 0 && (
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem] items-center gap-2 px-1">
+                  <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">รถ</span>
+                  <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">พนักงานขับรถ</span>
+                  <span className="sr-only">จัดการแถว</span>
+                </div>
+              )}
+
+              {assignments.length === 0 && (
+                <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-amber-800">ยังไม่มีรถและพนักงานขับรถ</p>
+                    <p className="mt-1 text-xs font-medium leading-5 text-amber-700">
+                      เมื่อบันทึก การเดินทางนี้จะเปลี่ยนสถานะเป็น <span className="font-black">รอจัดรถ</span>
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {assignments.map((assignment, index) => (
                 <div key={assignment.rowId} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem] items-center gap-2">
@@ -320,9 +334,8 @@ export default function AssignBookingModal({
                   <button
                     type="button"
                     onClick={() => removeAssignment(assignment.rowId)}
-                    disabled={assignments.length <= 1}
-                    title={assignments.length <= 1 ? 'ต้องมีรถอย่างน้อย 1 คัน' : `ลบรถคันที่ ${index + 1}`}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:border-slate-100 disabled:bg-slate-50 disabled:text-slate-300 disabled:hover:border-slate-100 disabled:hover:bg-slate-50 disabled:hover:text-slate-300"
+                    title={`ลบรถคันที่ ${index + 1}`}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
                     aria-label={`ลบรถคันที่ ${index + 1}`}
                   >
                     <Trash2 className="h-4 w-4" />
