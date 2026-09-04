@@ -19,6 +19,7 @@ import {
   isValidTripType,
   syncTravelledBookingStatus,
 } from '@/lib/master-data';
+import { requireSignedInAccess } from '@/lib/authz';
 
 async function pushBookingCreatedNotifyMessage(booking: BookingDetailMessage) {
   const result = await pushBookingCreatedMophNotifyMessage(booking);
@@ -92,6 +93,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const access = await requireSignedInAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     await ensureTripsSchema();
     await ensureCarTypeSchema();
     await ensureMasterDataSchema();

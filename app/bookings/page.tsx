@@ -4,7 +4,7 @@ import { ensureTripsSchema } from '@/lib/booking-trip';
 import { ensureCarTypeSchema } from '@/lib/car-type';
 import { ensureMasterDataSchema, getBookingStatusIds, getDepartments, syncTravelledBookingStatus } from '@/lib/master-data';
 import { auth } from '@/auth';
-import { canAssignBookings } from '@/lib/authz';
+import { canAssignBookings, canCancelBookings } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +34,7 @@ export default async function BookingsPage({
   await syncTravelledBookingStatus();
   const session = await auth();
   const canAssignBooking = canAssignBookings(session);
+  const canCancelBooking = canCancelBookings(session);
   const statusIds = await getBookingStatusIds();
   const departments = await getDepartments();
   const bookings = await queryWithEncoding(
@@ -106,6 +107,7 @@ export default async function BookingsPage({
       order={order}
       statusIds={statusIds}
       canAssignBookings={canAssignBooking}
+      canCancelBookings={canCancelBooking}
       isAuthenticated={!!session?.user}
     />
   );

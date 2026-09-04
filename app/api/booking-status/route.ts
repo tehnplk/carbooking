@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { queryWithEncoding } from '@/lib/db';
 import { getBookingStatuses } from '@/lib/master-data';
+import { requireAdminAccess } from '@/lib/authz';
 
 export async function GET() {
   try {
@@ -15,6 +16,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const access = await requireAdminAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     const body = await request.json();
     const name = typeof body?.name === 'string' ? body.name.trim() : '';
 

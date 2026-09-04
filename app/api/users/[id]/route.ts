@@ -2,12 +2,18 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { queryWithEncoding } from '@/lib/db';
 import { ensureMasterDataSchema, isValidUserRole } from '@/lib/master-data';
+import { requireAdminAccess } from '@/lib/authz';
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const access = await requireAdminAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     await ensureMasterDataSchema();
     const body = await request.json();
     const { username, password, role_id, fullname, department } = body;
@@ -69,6 +75,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const access = await requireAdminAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     const { id } = await params;
     await queryWithEncoding('DELETE FROM users WHERE id = $1', [id]);
     return NextResponse.json({ success: true });

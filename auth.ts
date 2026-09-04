@@ -9,6 +9,8 @@ import { verifySsoTicket } from '@/lib/sso';
 // stamped at sign-in rather than a rolling expiry.
 const SSO_SESSION_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 const SSO_USER_ID_PREFIX = 'sso:';
+// SSO users have no row in `users`, so they all get user_role 3 (ผู้ขอใช้รถ)
+const SSO_ROLE_ID = 3;
 
 type DbUser = {
   id: number;
@@ -61,7 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: claims.name,
           username: claims.providerId,
           position: claims.position,
-          roleId: null,
+          roleId: SSO_ROLE_ID,
           roleName: null,
         };
       },

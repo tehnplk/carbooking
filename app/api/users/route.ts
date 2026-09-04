@@ -2,9 +2,15 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { queryWithEncoding } from '@/lib/db';
 import { ensureMasterDataSchema, getDefaultUserRoleId, isValidUserRole } from '@/lib/master-data';
+import { requireAdminAccess } from '@/lib/authz';
 
 export async function GET() {
   try {
+    const access = await requireAdminAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     await ensureMasterDataSchema();
     const users = await queryWithEncoding(
       `SELECT u.id, u.username, u.role_id, ur.name AS role_name, u.fullname, u.department, u.created_at
@@ -22,6 +28,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const access = await requireAdminAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     await ensureMasterDataSchema();
     const body = await request.json();
     const { username, password, role_id, fullname, department } = body;

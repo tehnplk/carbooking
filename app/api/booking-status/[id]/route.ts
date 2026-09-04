@@ -1,12 +1,18 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { queryWithEncoding } from '@/lib/db';
+import { requireAdminAccess } from '@/lib/authz';
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const access = await requireAdminAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     const body = await request.json();
     const name = typeof body?.name === 'string' ? body.name.trim() : (typeof body?.status === 'string' ? body.status.trim() : '');
     const { id } = await params;
@@ -32,6 +38,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const access = await requireAdminAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     const { id } = await params;
     await queryWithEncoding('DELETE FROM booking_status WHERE id = $1', [id]);
     return NextResponse.json({ success: true });

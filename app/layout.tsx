@@ -31,7 +31,6 @@ function getPageTitle(pathname: string) {
   };
 
   if (pageTitles[pathname]) return pageTitles[pathname];
-  if (/^\/bookings\/[^/]+\/edit$/.test(pathname)) return 'แก้ไขใบขอใช้รถ';
   if (/^\/drivers\/[^/]+\/edit$/.test(pathname)) return 'แก้ไขข้อมูลพนักงานขับรถ';
   if (/^\/users\/[^/]+\/edit$/.test(pathname)) return 'แก้ไขผู้ใช้งาน';
   return 'PLKCar';

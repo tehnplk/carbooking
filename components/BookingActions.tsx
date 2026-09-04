@@ -81,6 +81,7 @@ interface BookingRowProps {
   view: 'desktop' | 'mobile';
   statusIds: BookingStatusIds;
   allowTripMerge?: boolean;
+  canCancel?: boolean;
   mergeBookings?: MergeBooking[];
   initialOtherIds?: number[];
 }
@@ -90,6 +91,7 @@ export default function BookingActions({
   view,
   statusIds,
   allowTripMerge = false,
+  canCancel = false,
   mergeBookings = [],
   initialOtherIds = [],
 }: BookingRowProps) {
@@ -97,7 +99,8 @@ export default function BookingActions({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const isAssigned = booking.status_id === statusIds.assigned;
-  const canCancel = booking.status_id !== statusIds.cancelled && booking.status_id !== statusIds.completed;
+  const isCancellableStatus = booking.status_id !== statusIds.cancelled && booking.status_id !== statusIds.completed;
+  const cancelEnabled = canCancel && isCancellableStatus;
   const modalBooking = {
     ...booking,
     requester_name: booking.requester_name || '',
@@ -154,9 +157,9 @@ export default function BookingActions({
       )}
       <button
         onClick={handleDelete}
-        disabled={isDeleting || !canCancel}
-        className={`flex items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${canCancel ? 'text-slate-600 hover:bg-rose-50 hover:text-rose-600' : 'text-slate-300'}`}
-        title={canCancel ? 'ยกเลิกขอใช้รถ' : 'ไม่สามารถยกเลิกได้'}
+        disabled={isDeleting || !cancelEnabled}
+        className={`flex items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${cancelEnabled ? 'text-slate-600 hover:bg-rose-50 hover:text-rose-600' : 'text-slate-300'}`}
+        title={cancelEnabled ? 'ยกเลิกขอใช้รถ' : 'ไม่สามารถยกเลิกได้'}
       >
         {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
         <span className="sr-only">Cancel booking</span>

@@ -1,9 +1,15 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { queryWithEncoding } from '@/lib/db';
+import { requireAdminAccess } from '@/lib/authz';
 
 export async function GET() {
   try {
+    const access = await requireAdminAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     const databaseInfo = await queryWithEncoding('SELECT current_database() AS database_name');
     const tableInfo = await queryWithEncoding(
       `SELECT table_name

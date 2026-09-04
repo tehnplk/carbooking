@@ -23,14 +23,15 @@ const menuItems = [
   { name: 'รายการขอใช้รถ', href: '/bookings', icon: CalendarCheck, isPublic: true },
   { name: 'รายงาน', href: '/report', icon: ChartNoAxesCombined, isPublic: true },
   { name: 'ยานพาหนะ', href: '/cars', icon: Car, isPublic: true },
-  { name: 'พนักงานขับรถ', href: '/drivers', icon: User },
-  { name: 'กลุ่มงาน/ฝ่ายงาน', href: '/department', icon: Building2 },
-  { name: 'ผู้ใช้งาน', href: '/users', icon: Users },
+  { name: 'พนักงานขับรถ', href: '/drivers', icon: User, adminOnly: true },
+  { name: 'กลุ่มงาน/ฝ่ายงาน', href: '/department', icon: Building2, adminOnly: true },
+  { name: 'ผู้ใช้งาน', href: '/users', icon: Users, adminOnly: true },
 ];
 
 type SessionUser = {
   username?: string | null;
   name?: string | null;
+  roleId?: number | null;
 };
 
 interface SidebarProps {
@@ -81,6 +82,7 @@ export default function Sidebar({
   }, [pathname]);
 
   const isAuthenticated = !!sessionUser;
+  const isAdmin = sessionUser?.roleId === 1;
   const displayName = sessionUser?.username || sessionUser?.name || 'ผู้ใช้งาน';
 
   return (
@@ -127,7 +129,10 @@ export default function Sidebar({
       </div>
 
       <nav className="flex flex-col space-y-1 flex-grow">
-        {menuItems.filter((item) => isAuthenticated || item.isPublic).map((item) => {
+        {menuItems
+          .filter((item) => isAuthenticated || item.isPublic)
+          .filter((item) => !item.adminOnly || isAdmin)
+          .map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
 

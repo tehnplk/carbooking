@@ -2,83 +2,38 @@ import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 import type { Session } from 'next-auth';
 
-const ALLOWED_CARS_DRIVERS_MUTATION_ROLES = new Set([
-  'user',
-  'admin',
-  'ผู้ใช้งาน',
-  'ผู้ดูแลระบบ',
-]);
-const ALLOWED_CARS_DRIVERS_MUTATION_ROLE_IDS = new Set([1, 2]);
-const ALLOWED_DEPARTMENT_MUTATION_ROLES = new Set([
-  'admin',
-  'ผู้ดูแลระบบ',
-]);
-const ALLOWED_DEPARTMENT_MUTATION_ROLE_IDS = new Set([2]);
-const ALLOWED_BOOKING_ASSIGNMENT_ROLES = new Set([
-  'user',
-  'ผู้ใช้งาน',
-]);
-const ALLOWED_BOOKING_ASSIGNMENT_ROLE_IDS = new Set([1]);
+// user_role.id
+const ROLE_ADMIN = 1;      // ผู้ดูแลระบบ
+const ROLE_FLEET = 2;      // งานยานพาหนะ
 
-function normalizeRole(roleName: string) {
-  return roleName.trim().toLowerCase().replace(/\s+/g, '');
-}
+const ALLOWED_CARS_DRIVERS_MUTATION_ROLE_IDS = new Set([ROLE_ADMIN]);
+const ALLOWED_DEPARTMENT_MUTATION_ROLE_IDS = new Set([ROLE_ADMIN]);
+const ALLOWED_BOOKING_ASSIGNMENT_ROLE_IDS = new Set([ROLE_ADMIN, ROLE_FLEET]);
+const ALLOWED_BOOKING_CANCEL_ROLE_IDS = new Set([ROLE_ADMIN, ROLE_FLEET]);
 
-export function canManageCarsDriversByRole(roleName?: string | null) {
-  if (!roleName) {
-    return false;
-  }
-
-  const normalizedRole = normalizeRole(roleName);
-  return [...ALLOWED_CARS_DRIVERS_MUTATION_ROLES]
-    .some((allowedRole) => normalizeRole(allowedRole) === normalizedRole);
+function hasRoleId(session: Session | null, allowedRoleIds: Set<number>) {
+  const roleId = session?.user?.roleId;
+  return typeof roleId === 'number' && allowedRoleIds.has(roleId);
 }
 
 export function canManageCarsDrivers(session: Session | null) {
-  const roleId = session?.user?.roleId;
-  if (typeof roleId === 'number' && ALLOWED_CARS_DRIVERS_MUTATION_ROLE_IDS.has(roleId)) {
-    return true;
-  }
-
-  return canManageCarsDriversByRole(session?.user?.roleName);
-}
-
-export function canManageDepartmentsByRole(roleName?: string | null) {
-  if (!roleName) {
-    return false;
-  }
-
-  const normalizedRole = normalizeRole(roleName);
-  return [...ALLOWED_DEPARTMENT_MUTATION_ROLES]
-    .some((allowedRole) => normalizeRole(allowedRole) === normalizedRole);
+  return hasRoleId(session, ALLOWED_CARS_DRIVERS_MUTATION_ROLE_IDS);
 }
 
 export function canManageDepartments(session: Session | null) {
-  const roleId = session?.user?.roleId;
-  if (typeof roleId === 'number' && ALLOWED_DEPARTMENT_MUTATION_ROLE_IDS.has(roleId)) {
-    return true;
-  }
-
-  return canManageDepartmentsByRole(session?.user?.roleName);
-}
-
-export function canAssignBookingsByRole(roleName?: string | null) {
-  if (!roleName) {
-    return false;
-  }
-
-  const normalizedRole = normalizeRole(roleName);
-  return [...ALLOWED_BOOKING_ASSIGNMENT_ROLES]
-    .some((allowedRole) => normalizeRole(allowedRole) === normalizedRole);
+  return hasRoleId(session, ALLOWED_DEPARTMENT_MUTATION_ROLE_IDS);
 }
 
 export function canAssignBookings(session: Session | null) {
-  const roleId = session?.user?.roleId;
-  if (typeof roleId === 'number' && ALLOWED_BOOKING_ASSIGNMENT_ROLE_IDS.has(roleId)) {
-    return true;
-  }
+  return hasRoleId(session, ALLOWED_BOOKING_ASSIGNMENT_ROLE_IDS);
+}
 
-  return canAssignBookingsByRole(session?.user?.roleName);
+export function canCancelBookings(session: Session | null) {
+  return hasRoleId(session, ALLOWED_BOOKING_CANCEL_ROLE_IDS);
+}
+
+export function isAdmin(session: Session | null) {
+  return session?.user?.roleId === ROLE_ADMIN;
 }
 
 type AccessResult =
@@ -125,6 +80,26 @@ export async function requireBookingAssignmentAccess(): Promise<AccessResult> {
   return { ok: true, session };
 }
 
+export async function requireBookingCancelAccess(): Promise<AccessResult> {
+  const session = await auth();
+
+  if (!session?.user) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    };
+  }
+
+  if (!canCancelBookings(session)) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Forbidden: cannot cancel bookings' }, { status: 403 }),
+    };
+  }
+
+  return { ok: true, session };
+}
+
 export async function requireDepartmentMutationAccess(): Promise<AccessResult> {
   const session = await auth();
 
@@ -136,6 +111,39 @@ export async function requireDepartmentMutationAccess(): Promise<AccessResult> {
   }
 
   if (!canManageDepartments(session)) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Forbidden: admin role required' }, { status: 403 }),
+    };
+  }
+
+  return { ok: true, session };
+}
+
+export async function requireSignedInAccess(): Promise<AccessResult> {
+  const session = await auth();
+
+  if (!session?.user) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    };
+  }
+
+  return { ok: true, session };
+}
+
+export async function requireAdminAccess(): Promise<AccessResult> {
+  const session = await auth();
+
+  if (!session?.user) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    };
+  }
+
+  if (!isAdmin(session)) {
     return {
       ok: false,
       response: NextResponse.json({ error: 'Forbidden: admin role required' }, { status: 403 }),

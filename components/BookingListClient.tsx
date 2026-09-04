@@ -32,6 +32,7 @@ interface BookingListClientProps {
   order: string;
   statusIds: BookingStatusIds;
   canAssignBookings: boolean;
+  canCancelBookings: boolean;
   isAuthenticated: boolean;
 }
 
@@ -251,7 +252,7 @@ function getVehicleDetailByPlate(booking: BookingItem, licensePlate: string) {
   return getVehicleDetailsForBooking(booking).find((item) => item.license_plate === licensePlate) ?? null;
 }
 
-export default function BookingListClient({ initialBookings, departments, sort, order, statusIds, canAssignBookings, isAuthenticated }: BookingListClientProps) {
+export default function BookingListClient({ initialBookings, departments, sort, order, statusIds, canAssignBookings, canCancelBookings, isAuthenticated }: BookingListClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -524,6 +525,8 @@ export default function BookingListClient({ initialBookings, departments, sort, 
       .map((candidate) => candidate.id);
 
   const shouldShowBulkAction = canAssignBookings && selectedIds.length > 0;
+  // Nothing in the จัดการ column is actionable without these, so drop the column entirely
+  const showActions = canAssignBookings || canCancelBookings;
 
   const bulkAssignButtonDesktop = shouldShowBulkAction ? (
     <button
@@ -764,7 +767,7 @@ export default function BookingListClient({ initialBookings, departments, sort, 
 
         {/* Desktop table */}
         <div className="hidden overflow-x-auto lg:block">
-          <table className={cn('w-full table-fixed', isAuthenticated ? 'min-w-[1120px]' : 'min-w-[1020px]')}>
+          <table className={cn('w-full table-fixed', showActions ? 'min-w-[1120px]' : 'min-w-[1020px]')}>
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="w-10 px-3 py-4 text-left">
@@ -810,7 +813,7 @@ export default function BookingListClient({ initialBookings, departments, sort, 
                     สถานะ
                   </span>
                 </th>
-                {isAuthenticated && (
+                {showActions && (
                   <th className="w-24 px-3 py-3 text-right text-[11px] font-semibold uppercase text-black">
                     <span className="inline-flex items-center justify-end gap-1.5">
                       <Settings2 className="h-3.5 w-3.5" />
@@ -823,7 +826,7 @@ export default function BookingListClient({ initialBookings, departments, sort, 
             <tbody className="divide-y divide-dashed divide-slate-400 bg-white">
               {filteredBookings.length === 0 ? (
                 <tr>
-                  <td colSpan={isAuthenticated ? 7 : 6} className="px-8 py-24 text-center">
+                  <td colSpan={showActions ? 7 : 6} className="px-8 py-24 text-center">
                     <Calendar className="mx-auto mb-4 h-12 w-12 text-slate-200" />
                     <p className="font-medium text-slate-400">ไม่พบรายการขอใช้รถ</p>
                   </td>
@@ -1042,13 +1045,14 @@ export default function BookingListClient({ initialBookings, departments, sort, 
                           )}
                         </div>
                       </td>
-                      {isAuthenticated && (
+                      {showActions && (
                         <td className="px-3 py-5 text-right align-top">
                           <BookingActions
                             booking={b}
                             view="desktop"
                             statusIds={statusIds}
                             allowTripMerge={canAssignBookings}
+                            canCancel={canCancelBookings}
                             mergeBookings={getMergeCandidatesForBooking(b)}
                             initialOtherIds={getMergeIdsForBooking(b)}
                           />
@@ -1225,12 +1229,13 @@ export default function BookingListClient({ initialBookings, departments, sort, 
                       </span>
                       {b.car_id && <ExportBookingDoc booking={b} />}
                     </div>
-                    {isAuthenticated && (
+                    {showActions && (
                       <BookingActions
                         booking={b}
                         view="mobile"
                         statusIds={statusIds}
                         allowTripMerge={canAssignBookings}
+                        canCancel={canCancelBookings}
                         mergeBookings={getMergeCandidatesForBooking(b)}
                         initialOtherIds={getMergeIdsForBooking(b)}
                       />

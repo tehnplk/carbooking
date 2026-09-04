@@ -1,20 +1,10 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { queryWithEncoding } from '@/lib/db';
-import { splitDateTimeLocal } from '@/lib/booking-datetime';
 import { publishBookingRealtime } from '@/lib/booking-realtime';
 import { ensureTripsSchema, toDateKey } from '@/lib/booking-trip';
-import { requireBookingAssignmentAccess } from '@/lib/authz';
-import {
-  ensureMasterDataSchema,
-  getBookingStatusIds,
-  getDefaultFuelReimbursementId,
-  getDefaultTripTypeId,
-  isValidBookingStatus,
-  isValidDepartment,
-  isValidFuelReimbursement,
-  isValidTripType,
-} from '@/lib/master-data';
+import { requireBookingAssignmentAccess, requireBookingCancelAccess } from '@/lib/authz';
+import { ensureMasterDataSchema, getBookingStatusIds } from '@/lib/master-data';
 
 function normalizeDatePart(value?: string | null) {
   if (!value) return '';
@@ -97,6 +87,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const access = await requireBookingAssignmentAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     await ensureTripsSchema();
     await ensureMasterDataSchema();
     const body = await request.json();
@@ -110,120 +105,9 @@ export async function PATCH(
       Object.prototype.hasOwnProperty.call(body, 'assignments') ||
       Object.prototype.hasOwnProperty.call(body, 'other_ids');
 
-    if (isAssignmentPayload) {
-      const access = await requireBookingAssignmentAccess();
-      if (!access.ok) {
-        return access.response;
-      }
-    }
-
+    // A submitted booking is never editable: assignment is the only PATCH there is
     if (!isAssignmentPayload) {
-      const {
-        destination,
-        purpose,
-        fuel_reimbursement_id,
-        distance,
-        start_time,
-        end_time,
-        requester_name,
-        requester_position,
-        supervisor_name,
-        supervisor_position,
-        department_id,
-        passengers,
-        trip_type_id,
-        status_id,
-        self_drive,
-      } = body;
-
-      const passengerCount = Number(passengers);
-      const normalizedSelfDrive = self_drive === true || self_drive === 'true';
-      const normalizedTripTypeId = Number(trip_type_id) || await getDefaultTripTypeId();
-      const normalizedFuelReimbursementId = Number(fuel_reimbursement_id) || await getDefaultFuelReimbursementId();
-      const normalizedDepartmentId = Number(department_id);
-      const normalizedStatusId = Number(status_id);
-      const statusIds = await getBookingStatusIds();
-      const startDateTime = splitDateTimeLocal(start_time);
-      const endDateTime = splitDateTimeLocal(end_time);
-
-      if (!requester_name || !requester_position || !supervisor_name || !supervisor_position) {
-        return NextResponse.json({ error: 'Requester and supervisor information is required' }, { status: 400 });
-      }
-
-      if (!normalizedDepartmentId || !(await isValidDepartment(normalizedDepartmentId))) {
-        return NextResponse.json({ error: 'Department is required' }, { status: 400 });
-      }
-
-      if (!destination || !purpose || !start_time || !end_time) {
-        return NextResponse.json({ error: 'Trip details are required' }, { status: 400 });
-      }
-
-      if (!Number.isFinite(passengerCount) || passengerCount < 1) {
-        return NextResponse.json({ error: 'Passenger count must be at least 1' }, { status: 400 });
-      }
-
-      if (!normalizedTripTypeId || !(await isValidTripType(normalizedTripTypeId))) {
-        return NextResponse.json({ error: 'Invalid trip type' }, { status: 400 });
-      }
-
-      if (!normalizedFuelReimbursementId || !(await isValidFuelReimbursement(normalizedFuelReimbursementId))) {
-        return NextResponse.json({ error: 'Invalid fuel reimbursement' }, { status: 400 });
-      }
-
-      if (normalizedStatusId && !(await isValidBookingStatus(normalizedStatusId))) {
-        return NextResponse.json({ error: 'Invalid booking status' }, { status: 400 });
-      }
-
-      await queryWithEncoding(
-        `UPDATE bookings
-         SET destination = $1,
-             purpose = $2,
-             fuel_reimbursement_id = $3,
-             distance = $4,
-             start_date = $5,
-             start_time = $6,
-             end_date = $7,
-             end_time = $8,
-             requester_name = $9,
-             requester_position = $10,
-             supervisor_name = $11,
-             supervisor_position = $12,
-             department_id = $13,
-             passengers = $14,
-             trip_type_id = $15,
-             status_id = $16,
-             self_drive = $17
-         WHERE id = $18`,
-        [
-          destination,
-          purpose,
-          normalizedFuelReimbursementId,
-          distance !== '' && distance !== null && distance !== undefined ? Number(distance) : null,
-          startDateTime.date,
-          startDateTime.time,
-          endDateTime.date,
-          endDateTime.time,
-          requester_name,
-          requester_position,
-          supervisor_name,
-          supervisor_position,
-          normalizedDepartmentId,
-          passengerCount,
-          normalizedTripTypeId,
-          normalizedStatusId || statusIds.pending,
-          normalizedSelfDrive,
-          id,
-        ]
-      );
-
-      await publishBookingRealtime({
-        action: 'updated',
-        bookingId: Number(id),
-        bookingIds: [Number(id)],
-        tripId: null,
-      });
-
-      return NextResponse.json({ message: 'Booking updated successfully' });
+      return NextResponse.json({ error: 'Bookings cannot be edited' }, { status: 400 });
     }
 
     const normalizedAssignments = (
@@ -464,6 +348,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const access = await requireBookingCancelAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     await ensureTripsSchema();
     await ensureMasterDataSchema();
     const { id } = await params;

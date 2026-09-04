@@ -1,3 +1,6 @@
+import { redirect } from 'next/navigation';
+import { auth } from '@/auth';
+import { isAdmin } from '@/lib/authz';
 import { queryWithEncoding } from '@/lib/db';
 import UsersManagementClient from '@/components/UsersManagementClient';
 import { ensureMasterDataSchema } from '@/lib/master-data';
@@ -15,6 +18,11 @@ type UserRow = {
 export const dynamic = 'force-dynamic';
 
 export default async function UsersPage() {
+  const session = await auth();
+  if (!isAdmin(session)) {
+    redirect('/bookings');
+  }
+
   await ensureMasterDataSchema();
   const users = await queryWithEncoding(
     `SELECT u.id, u.username, u.role_id, ur.name AS role_name, u.fullname, u.department, u.created_at

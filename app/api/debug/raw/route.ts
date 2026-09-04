@@ -2,9 +2,15 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { queryWithEncoding } from '@/lib/db';
 import { ensureCarTypeSchema } from '@/lib/car-type';
+import { requireAdminAccess } from '@/lib/authz';
 
 export async function GET() {
   try {
+    const access = await requireAdminAccess();
+    if (!access.ok) {
+      return access.response;
+    }
+
     await ensureCarTypeSchema();
     const rows = await queryWithEncoding(
       `SELECT c.id, c.brand, c.model, c.license_plate, ct.name AS car_type, c.is_active
