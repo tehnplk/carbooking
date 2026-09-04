@@ -6,7 +6,8 @@ export default auth((req) => {
   const { pathname, search } = req.nextUrl;
 
   const publicPaths = new Set(['/', '/login', '/bookings', '/bookings/add', '/cars', '/report']);
-  const isPublicPath = publicPaths.has(pathname);
+  const isSsoPath = pathname.startsWith('/auth/sso');
+  const isPublicPath = publicPaths.has(pathname) || isSsoPath;
   const isOnLoginPage = pathname === '/login';
 
   if (!isLoggedIn && !isPublicPath) {
@@ -14,6 +15,12 @@ export default auth((req) => {
     const callbackUrl = `${pathname}${search}`;
     loginUrl.searchParams.set('callbackUrl', callbackUrl);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // SSO users authenticate only to file a booking; they carry no staff role.
+  const isSsoUser = String(req.auth?.user?.id ?? '').startsWith('sso:');
+  if (isLoggedIn && isSsoUser && !isPublicPath) {
+    return NextResponse.redirect(new URL('/bookings', req.url));
   }
 
   if (isLoggedIn && isOnLoginPage) {
