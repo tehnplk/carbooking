@@ -183,7 +183,7 @@ export default function Sidebar({
         <button
           onClick={() => {
             if (isAuthenticated) {
-              signOut({ callbackUrl: '/login' });
+              signOut({ callbackUrl: '/bookings' });
               return;
             }
             router.push('/login');
