@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     // Discovery is the only network call before the redirect. If the SSO is
     // unreachable, say so here rather than sending the user to a dead URL.
+    console.error('SSO login could not start:', error);
     const baseUrl = process.env.AUTH_URL || request.nextUrl.origin;
     return NextResponse.redirect(
       new URL(`${DEFAULT_RETURN}?sso_error=sso_unreachable`, baseUrl)
