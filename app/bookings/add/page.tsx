@@ -6,8 +6,10 @@ import AddBookingForm from './AddBookingForm';
 export const dynamic = 'force-dynamic';
 
 const SSO_ERROR_MESSAGES: Record<string, string> = {
-  access_denied: 'คุณยกเลิกการเข้าสู่ระบบ กรุณากด "อนุญาตและดำเนินการต่อ" เพื่อขอใช้รถ',
+  access_denied: 'คุณยกเลิกการเข้าสู่ระบบ หรือบัญชีนี้ยังไม่ได้รับสิทธิ์ใช้งานระบบจองรถ',
   invalid_request: 'คำขอเข้าสู่ระบบไม่ถูกต้องหรือหมดอายุ กรุณาลองใหม่อีกครั้ง',
+  invalid_scope: 'ระบบจองรถขอข้อมูลที่ยังไม่ได้รับอนุญาต กรุณาแจ้งผู้ดูแลระบบ',
+  sso_unreachable: 'ติดต่อระบบยืนยันตัวตนไม่ได้ในขณะนี้ กรุณาลองใหม่อีกสักครู่',
 };
 
 const SSO_ERROR_FALLBACK = 'ไม่สามารถยืนยันตัวตนผ่าน MOPH ID ได้ กรุณาลองใหม่อีกครั้ง';

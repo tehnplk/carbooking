@@ -1,67 +1,45 @@
 import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 import { signIn } from '@/auth';
-import {
-  SSO_NONCE_COOKIE,
-  SSO_RETURN_COOKIE,
-  SSO_STATE_COOKIE,
-  SSO_VERIFIER_COOKIE,
-  createSsoTicket,
-  exchangeCode,
-  fetchUserInfo,
-  toSsoClaims,
-  verifyIdToken,
-} from '@/lib/sso';
+import { SSO_TX_COOKIE, completeLogin, createSsoTicket, readTransaction } from '@/lib/sso';
 
 export const dynamic = 'force-dynamic';
 
-function failure(reason: string) {
+const DEFAULT_RETURN = '/bookings/add';
+
+function failure(request: NextRequest, reason: string) {
   return NextResponse.redirect(
-    new URL(`/bookings/add?sso_error=${encodeURIComponent(reason)}`, process.env.AUTH_URL || 'http://localhost:3000')
+    new URL(`${DEFAULT_RETURN}?sso_error=${encodeURIComponent(reason)}`, request.url)
   );
 }
 
 export async function GET(request: NextRequest) {
-  const cookieStore = await cookies();
   const params = request.nextUrl.searchParams;
+  const jar = await cookies();
 
-  const state = cookieStore.get(SSO_STATE_COOKIE)?.value;
-  const nonce = cookieStore.get(SSO_NONCE_COOKIE)?.value;
-  const verifier = cookieStore.get(SSO_VERIFIER_COOKIE)?.value;
-  const returnTo = cookieStore.get(SSO_RETURN_COOKIE)?.value || '/bookings/add';
+  const tx = await readTransaction(jar.get(SSO_TX_COOKIE)?.value);
+  // One attempt per cookie, whatever the outcome, so a code cannot be replayed
+  // against a transaction that is still sitting in the browser.
+  jar.delete(SSO_TX_COOKIE);
 
-  for (const name of [SSO_STATE_COOKIE, SSO_NONCE_COOKIE, SSO_VERIFIER_COOKIE, SSO_RETURN_COOKIE]) {
-    cookieStore.delete(name);
-  }
-
-  if (params.get('error')) {
-    return failure(params.get('error') as string);
-  }
+  // The SSO reports a refusal here rather than throwing; access_denied covers
+  // both "user declined" and "no permission for this app".
+  const error = params.get('error');
+  if (error) return failure(request, error);
 
   const code = params.get('code');
-  if (!code || !state || !nonce || !verifier || params.get('state') !== state) {
-    return failure('invalid_request');
+  if (!tx || !code || params.get('state') !== tx.state) {
+    return failure(request, 'invalid_request');
   }
 
   let ticket: string;
   try {
-    const tokens = await exchangeCode(code, verifier);
-    if (!tokens.id_token) {
-      return failure('missing_id_token');
-    }
-
-    const idTokenClaims = await verifyIdToken(tokens.id_token, nonce);
-    const userInfo = tokens.access_token ? await fetchUserInfo(tokens.access_token) : {};
-    const claims = toSsoClaims({ ...idTokenClaims, ...userInfo });
-    if (!claims) {
-      return failure('invalid_profile');
-    }
-
-    ticket = await createSsoTicket(claims);
-  } catch (error) {
-    console.error('SSO callback failed:', error);
-    return failure('sso_failed');
+    ticket = await createSsoTicket(await completeLogin(code, tx));
+  } catch (cause) {
+    console.error('SSO callback failed:', cause);
+    return failure(request, 'sso_failed');
   }
 
-  return signIn('plk-sso', { ticket, redirectTo: returnTo });
+  // signIn throws a redirect, so anything after this line does not run.
+  return signIn('plk-sso', { ticket, redirectTo: tx.returnTo });
 }

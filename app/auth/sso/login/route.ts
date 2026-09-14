@@ -1,41 +1,39 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import {
-  SSO_NONCE_COOKIE,
-  SSO_RETURN_COOKIE,
-  SSO_STATE_COOKIE,
-  SSO_VERIFIER_COOKIE,
-  buildAuthorizeUrl,
-  createPkcePair,
-  createRandomToken,
-} from '@/lib/sso';
+import { SSO_TX_COOKIE, SSO_TX_MAX_AGE, buildAuthorizeUrl, createTransaction } from '@/lib/sso';
 
 export const dynamic = 'force-dynamic';
 
-const COOKIE_MAX_AGE = 10 * 60;
+const DEFAULT_RETURN = '/bookings/add';
+
+/** Only same-origin paths, so the return value cannot become an open redirect. */
+function safeReturnTo(value: string | null) {
+  return value && value.startsWith('/') && !value.startsWith('//') ? value : DEFAULT_RETURN;
+}
 
 export async function GET(request: NextRequest) {
-  const requestedReturn = request.nextUrl.searchParams.get('callbackUrl');
-  const returnTo = requestedReturn && requestedReturn.startsWith('/') && !requestedReturn.startsWith('//')
-    ? requestedReturn
-    : '/bookings/add';
+  const returnTo = safeReturnTo(request.nextUrl.searchParams.get('callbackUrl'));
+  const { tx, cookie } = await createTransaction(returnTo);
 
-  const state = createRandomToken();
-  const nonce = createRandomToken();
-  const { verifier, challenge } = createPkcePair();
+  let authorizeUrl: string;
+  try {
+    authorizeUrl = await buildAuthorizeUrl(tx);
+  } catch (error) {
+    // Discovery is the only network call before the redirect. If the SSO is
+    // unreachable, say so here rather than sending the user to a dead URL.
+    console.error('SSO login could not start:', error);
+    return NextResponse.redirect(
+      new URL(`${DEFAULT_RETURN}?sso_error=sso_unreachable`, request.url)
+    );
+  }
 
-  const response = NextResponse.redirect(buildAuthorizeUrl({ state, nonce, challenge }));
-  const options = {
+  const response = NextResponse.redirect(authorizeUrl);
+  response.cookies.set(SSO_TX_COOKIE, cookie, {
     httpOnly: true,
-    sameSite: 'lax' as const,
+    // lax, not strict: the cookie has to survive the redirect back from the SSO.
+    sameSite: 'lax',
     secure: request.nextUrl.protocol === 'https:',
     path: '/',
-    maxAge: COOKIE_MAX_AGE,
-  };
-
-  response.cookies.set(SSO_STATE_COOKIE, state, options);
-  response.cookies.set(SSO_NONCE_COOKIE, nonce, options);
-  response.cookies.set(SSO_VERIFIER_COOKIE, verifier, options);
-  response.cookies.set(SSO_RETURN_COOKIE, returnTo, options);
-
+    maxAge: SSO_TX_MAX_AGE,
+  });
   return response;
 }

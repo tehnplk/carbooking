@@ -8,6 +8,8 @@ declare module 'next-auth' {
       roleId: number | null;
       roleName: string | null;
       position: string | null;
+      orgCode: string | null;
+      orgName: string | null;
     } & DefaultSession['user'];
   }
 
@@ -16,7 +18,11 @@ declare module 'next-auth' {
     roleId: number | null;
     roleName: string | null;
     position?: string | null;
-    ssoExpiresAt?: number | null;
+    orgCode?: string | null;
+    orgName?: string | null;
+    /** SSO only: kept so the session can be re-checked and revoked on sign-out. */
+    ssoAccessToken?: string | null;
+    ssoTokenExpiresAt?: number | null;
   }
 }
 
@@ -26,6 +32,13 @@ declare module 'next-auth/jwt' {
     roleId?: number | null;
     roleName?: string | null;
     position?: string | null;
+    orgCode?: string | null;
+    orgName?: string | null;
+    /** Absolute cap on the SSO session, stamped at sign-in. */
     ssoExpiresAt?: number | null;
+    ssoAccessToken?: string | null;
+    ssoTokenExpiresAt?: number | null;
+    /** Last successful userinfo re-check, to keep within the rate limit. */
+    ssoCheckedAt?: number | null;
   }
 }
