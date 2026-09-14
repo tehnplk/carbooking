@@ -8,8 +8,9 @@ export const dynamic = 'force-dynamic';
 const DEFAULT_RETURN = '/bookings/add';
 
 function failure(request: NextRequest, reason: string) {
+  const baseUrl = process.env.AUTH_URL || request.nextUrl.origin;
   return NextResponse.redirect(
-    new URL(`${DEFAULT_RETURN}?sso_error=${encodeURIComponent(reason)}`, request.url)
+    new URL(`${DEFAULT_RETURN}?sso_error=${encodeURIComponent(reason)}`, baseUrl)
   );
 }
 
